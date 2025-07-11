@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Educational Trivia Game</title>
+    <style>
+        /* --- Basic Styling & Layout --- */
+        :root {
+            --primary-bg: #34495e;
+            --secondary-bg: #ecf0f1;
+            --text-color: #2c3e50;
+            --accent-color: #3498db;
+            --correct-color: #2ecc71;
+            --incorrect-color: #e74c3c;
+            --font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--primary-bg);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        /* --- Game Container --- */
+        .game-container {
+            background-color: var(--secondary-bg);
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 600px;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        .header {
+            background-color: var(--accent-color);
+            color: white;
+            padding: 20px;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 1.8em;
+        }
+
+        .main-content {
+            padding: 30px;
+        }
+
+        /* --- Question & Score --- */
+        #question-container {
+            margin-bottom: 20px;
+        }
+
+        #question-text {
+            font-size: 1.4em;
+            margin-bottom: 20px;
+        }
+
+        #score-text {
+            font-size: 1.1em;
+            margin-bottom: 20px;
+            color: #555;
+        }
+
+        /* --- Answer Buttons --- */
+        #answer-buttons {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 10px;
+        }
+
+        .btn {
+            background-color: white;
+            border: 2px solid var(--accent-color);
+            border-radius: 8px;
+            padding: 15px;
+            font-size: 1.1em;
+            color: var(--accent-color);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .btn:hover:not(:disabled) {
+            background-color: var(--accent-color);
+            color: white;
+        }
+
+        .btn:disabled {
+            cursor: not-allowed;
+        }
+
+        /* --- Feedback Classes --- */
+        .btn.correct {
+            background-color: var(--correct-color);
+            border-color: var(--correct-color);
+            color: white;
+        }
+
+        .btn.incorrect {
+            background-color: var(--incorrect-color);
+            border-color: var(--incorrect-color);
+            color: white;
+        }
+
+        /* --- Controls --- */
+        .controls {
+            margin-top: 30px;
+        }
+
+        #next-btn, #start-btn {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        
+        #next-btn:hover, #start-btn:hover {
+            background-color: #2980b9;
+        }
+        
+        /* --- Utility Classes --- */
+        .hide {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <div class="header">
+            <h1>General Knowledge Trivia</h1>
+        </div>
+
+        <div class="main-content">
+            <!-- Start Screen -->
+            <div id="start-screen">
+                <p>Test your knowledge! Press the button to begin.</p>
+                <button id="start-btn">Start Game</button>
+            </div>
+            
+            <!-- Game Screen -->
+            <div id="game-screen" class="hide">
+                <div id="question-container">
+                    <p id="score-text">Score: 0</p>
+                    <h2 id="question-text">Question goes here</h2>
+                    <div id="answer-buttons">
+                        <!-- Buttons will be dynamically inserted here -->
+                    </div>
+                </div>
+                <div class="controls">
+                    <button id="next-btn" class="hide">Next</button>
+                </div>
+            </div>
+
+            <!-- Results Screen -->
+            <div id="results-screen" class="hide">
+                <h2>Game Over!</h2>
+                <p id="final-score-text">You scored X out of Y.</p>
+                <button id="restart-btn">Play Again</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const startScreen = document.getElementById('start-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const resultsScreen = document.getElementById('results-screen');
+
+        const startBtn = document.getElementById('start-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const restartBtn = document.getElementById('restart-btn');
+
+        const questionContainerElement = document.getElementById('question-container');
+        const questionElement = document.getElementById('question-text');
+        const answerButtonsElement = document.getElementById('answer-buttons');
+        const scoreTextElement = document.getElementById('score-text');
+        const finalScoreTextElement = document.getElementById('final-score-text');
+
+        // --- Game State Variables ---
+        let shuffledQuestions, currentQuestionIndex;
+        let score = 0;
+
+        // --- Event Listeners ---
+        startBtn.addEventListener('click', startGame);
+        nextBtn.addEventListener('click', () => {
+            currentQuestionIndex++;
+            setNextQuestion();
+        });
+        restartBtn.addEventListener('click', startGame);
+
+        // --- Questions Database ---
+        // Easy to add more questions here!
+        const questions = [
+            {
+                question: 'What is the capital of Japan?',
+                answers: [
+                    { text: 'Tokyo', correct: true },
+                    { text: 'Beijing', correct: false },
+                    { text: 'Seoul', correct: false },
+                    { text: 'Bangkok', correct: false }
+                ]
+            },
+            {
+                question: 'Which planet is known as the Red Planet?',
+                answers: [
+                    { text: 'Venus', correct: false },
+                    { text: 'Mars', correct: true },
+                    { text: 'Jupiter', correct: false },
+                    { text: 'Saturn', correct: false }
+                ]
+            },
+            {
+                question: 'What is the largest ocean on Earth?',
+                answers: [
+                    { text: 'Atlantic Ocean', correct: false },
+                    { text: 'Indian Ocean', correct: false },
+                    { text: 'Arctic Ocean', correct: false },
+                    { text: 'Pacific Ocean', correct: true }
+                ]
+            },
+            {
+                question: 'Who wrote "Romeo and Juliet"?',
+                answers: [
+                    { text: 'Charles Dickens', correct: false },
+                    { text: 'William Shakespeare', correct: true },
+                    { text: 'Jane Austen', correct: false },
+                    { text: 'Mark Twain', correct: false }
+                ]
+            },
+            {
+                question: 'What element does "O" represent on the periodic table?',
+                answers: [
+                    { text: 'Gold', correct: false },
+                    { text: 'Oxygen', correct: true },
+                    { text: 'Osmium', correct: false },
+                    { text: 'Oganesson', correct: false }
+                ]
+            }
+        ];
+
+        // --- Game Functions ---
+
+        /**
+         * Starts the game, resets state, and shows the first question.
+         */
+        function startGame() {
+            // Reset game state
+            score = 0;
+            currentQuestionIndex = 0;
+            updateScoreDisplay();
+            
+            // Shuffle questions to make it different each time
+            shuffledQuestions = questions.sort(() => Math.random() - 0.5);
+
+            // Hide start/results screens and show the game screen
+            startScreen.classList.add('hide');
+            resultsScreen.classList.add('hide');
+            gameScreen.classList.remove('hide');
+
+            setNextQuestion();
+        }
+
+        /**
+         * Sets up the next question or ends the game if no questions are left.
+         */
+        function setNextQuestion() {
+            resetState();
+            if (currentQuestionIndex < shuffledQuestions.length) {
+                showQuestion(shuffledQuestions[currentQuestionIndex]);
+            } else {
+                endGame();
+            }
+        }
+
+        /**
+         * Displays the current question and its answer options.
+         * @param {object} question - The question object to display.
+         */
+        function showQuestion(question) {
+            questionElement.innerText = question.question;
+            question.answers.forEach(answer => {
+                const button = document.createElement('button');
+                button.innerText = answer.text;
+                button.classList.add('btn');
+                if (answer.correct) {
+                    button.dataset.correct = answer.correct;
+                }
+                button.addEventListener('click', selectAnswer);
+                answerButtonsElement.appendChild(button);
+            });
+        }
+
+        /**
+         * Clears previous question's state (buttons, styles).
+         */
+        function resetState() {
+            nextBtn.classList.add('hide');
+            while (answerButtonsElement.firstChild) {
+                answerButtonsElement.removeChild(answerButtonsElement.firstChild);
+            }
+        }
+
+        /**
+         * Handles the logic when a user clicks an answer.
+         * @param {Event} e - The click event.
+         */
+        function selectAnswer(e) {
+            const selectedButton = e.target;
+            const isCorrect = selectedButton.dataset.correct === 'true';
+            
+            if (isCorrect) {
+                score++;
+                updateScoreDisplay();
+            }
+
+            // Provide visual feedback for all answers
+            Array.from(answerButtonsElement.children).forEach(button => {
+                setStatusClass(button, button.dataset.correct === 'true');
+                button.disabled = true; // Disable buttons after selection
+            });
+
+            // Show the next button
+            if (shuffledQuestions.length > currentQuestionIndex + 1) {
+                nextBtn.classList.remove('hide');
+            } else {
+                // If it's the last question, show a "Finish" button instead of "Next"
+                nextBtn.innerText = 'Finish';
+                nextBtn.classList.remove('hide');
+            }
+        }
+
+        /**
+         * Applies the 'correct' or 'incorrect' class to an element.
+         * @param {HTMLElement} element - The button to style.
+         * @param {boolean} correct - Whether the answer is correct.
+         */
+        function setStatusClass(element, correct) {
+            clearStatusClass(element);
+            if (correct) {
+                element.classList.add('correct');
+            } else {
+                element.classList.add('incorrect');
+            }
+        }
+
+        /**
+         * Removes both 'correct' and 'incorrect' classes.
+         * @param {HTMLElement} element - The element to clear.
+         */
+        function clearStatusClass(element) {
+            element.classList.remove('correct');
+            element.classList.remove('incorrect');
+        }
+        
+        /**
+         * Updates the score display on the screen.
+         */
+        function updateScoreDisplay() {
+            scoreTextElement.innerText = `Score: ${score}`;
+        }
+
+        /**
+         * Ends the game and shows the final results.
+         */
+        function endGame() {
+            gameScreen.classList.add('hide');
+            resultsScreen.classList.remove('hide');
+            finalScoreTextElement.innerText = `You scored ${score} out of ${questions.length}!`;
+            nextBtn.innerText = 'Next'; // Reset button text for next game
+        }
+
+    </script>
+</body>
+</html>
